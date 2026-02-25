@@ -7,5 +7,6 @@ output: pdf_document
 
 ```{r}
 #Testing github
+install.packages(c("usethis", "gitcreds"))
 ```
 
