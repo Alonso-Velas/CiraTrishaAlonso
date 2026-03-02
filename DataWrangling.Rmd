@@ -14,7 +14,7 @@ library(lubridate)
 seaotter_data <- read.csv(here("Data/GLBA_SEOT_forage_bouts_1993-2019(1).csv"))
 ```
 
-# Create Year and Month Columns / Filter for Variables of Interest / Rid NAs
+# Create Year and Month Columns / Filter for Variables of Interest / Rid NAs and unidentified prey items
 
 ```{r}
 seaotter_data$bout_date <- ymd(seaotter_data$bout_date)
@@ -24,6 +24,9 @@ seaotter_data <- seaotter_data %>%
   mutate(month = month(bout_date)) %>%
   filter(site_name != "") %>%
   filter(preysize_cd != "") %>%
+  filter(preytype_cd != "uni")%>%
+  filter(preytype_cd != "egm") %>%
+  filter(sex_cd != "u") %>%
   select("bout_date", "year", "month", "sex_cd", "site_name", "dive_time", "success_cd", "preytype_cd", "prey_qty", "preysize_cd")
   
 seaotter_data <- na.omit(seaotter_data)
@@ -48,10 +51,29 @@ histogram of success per site
 
 # Has prey type/quantity of sea otters within Glacier Bay National Park changed over time?
 ```{r}
-seaotter_preytype <- 
+preytype_data <- read.csv(here("Data/GLBA_SEOT_forage_taxonomy_1993-2019(1).csv"))
 
+preytype_data <- preytype_data %>%
+  select("preytype_cd", "common_name", "phylum")
 
+seaotter_preytype <- seaotter_data 
 
+annelida_codes <- c("ecs", "wor") 
+arthropoda_codes <- c( "bas","cam","can","cao","cap","chb","cra","hes","hyl", "org","pac","pag","pas","pcr","pug","pup","pus","tec")
+chordata_codes <- c("feg", "fis", "haa")
+echinodermata_codes <- c("apc", "crp", "cuc", "cuf", "cum", "evt", "goc", "gos", "les", "ops", "pis", "pyh", "sos", "sta", "std", "stf", "stp", "urc")
+mollusca_codes <- c("biv", "chi", "chl", "cla", "cln", "crg", "crs", "enn", "eul", "fuo", "gac", "huk", "kat", "lim", "lua", "man", "map", "mas", "mom", "msc", "mtr", "mus", "mya", "mys", "myt", "nes", "ocd", "paa", "pat", "pom", "prs", "sag", "sca", "seg", "sip", "sna", "spi", "trc")
+porifera_codes <-c("spo")
+sipuncula_codes <-c("pha")
+
+seaotter_preytype$phylum <- ifelse( seaotter_preytype$preytype_cd %in% annelida_codes, "Annelida", 
+                            ifelse( seaotter_preytype$preytype_cd %in% arthropoda_codes, "Arthropoda", 
+                            ifelse( seaotter_preytype$preytype_cd %in% chordata_codes, "Chordata",
+                            ifelse( seaotter_preytype$preytype_cd %in% echinodermata_codes, "Echinodermata",
+                            ifelse( seaotter_preytype$preytype_cd %in% mollusca_codes, "Mollusca",
+                            ifelse( seaotter_preytype$preytype_cd %in% porifera_codes, "Porifera",    
+                            ifelse( seaotter_preytype$preytype_cd %in% sipuncula_codes, "Sipuncula", NA)))))))
+ 
 ```
 scatterplot of grouped food types over time
 
@@ -59,10 +81,25 @@ scatterplot of grouped food types over time
 # Does the proportion of successful foraging attempts of sea others within Glacier Bay National Park vary with gender or dive time?
 
 ```{r}
+seaotter_gender <- seaotter_data %>%
+  mutate(success = success_cd =="y") %>%
+  group_by (site_name, sex_cd) %>%
+  summarise(
+    number_dives = n(),
+    success_rate = mean(success),
+    .groups = "drop")
 
 
+seaotter_dive <- seaotter_data  %>%
+  mutate(success = success_cd =="y") %>%
+  group_by (site_name, dive_time) %>%
+  summarise(
+    number_dives = n(),
+    success_rate = mean(success),
+    .groups = "drop")
 
+  
 ```
-
+GLM for if success can be predicted by gender or dive time
 
 
