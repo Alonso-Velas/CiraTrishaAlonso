@@ -1,0 +1,68 @@
+---
+title: "DataWrangling"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Load in Packages / Data
+```{r}
+library(tidyverse)
+library(here)
+library(lubridate)
+
+seaotter_data <- read.csv(here("Data/GLBA_SEOT_forage_bouts_1993-2019(1).csv"))
+```
+
+# Create Year and Month Columns / Filter for Variables of Interest / Rid NAs
+
+```{r}
+seaotter_data$bout_date <- ymd(seaotter_data$bout_date)
+
+seaotter_data <- seaotter_data %>%
+  mutate(year = year(bout_date)) %>%
+  mutate(month = month(bout_date)) %>%
+  filter(site_name != "") %>%
+  filter(preysize_cd != "") %>%
+  select("bout_date", "year", "month", "sex_cd", "site_name", "dive_time", "success_cd", "preytype_cd", "prey_qty", "preysize_cd")
+  
+seaotter_data <- na.omit(seaotter_data)
+```
+
+
+# Do successful foraging attempts of sea otters within the Glacier Bay National Park vary geographically (different sites)?
+```{r}
+# Site name, Success = Yes, Count
+
+seaotter_success <- seaotter_data %>%
+  filter(success_cd == "y") %>%
+  group_by (site_name) %>%
+  count(success_cd) %>%
+  rename(count = "n")
+  
+# definitely do facet_wrap(~site_name) for graphing
+
+```
+histogram of success per site
+
+
+# Has prey type/quantity of sea otters within Glacier Bay National Park changed over time?
+```{r}
+seaotter_preytype <- 
+
+
+
+```
+scatterplot of grouped food types over time
+
+
+# Does the proportion of successful foraging attempts of sea others within Glacier Bay National Park vary with gender or dive time?
+
+```{r}
+
+
+
+```
+
+
+
