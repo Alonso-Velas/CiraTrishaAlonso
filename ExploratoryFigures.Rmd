@@ -12,13 +12,15 @@ library(tidyverse)
 library(here)
 
 cleaned_seaotter_data <- read_csv(here("Data/cleaned_seaotter_data.csv"))
-
 ```
+
+
 
 ### Does longer bout time equal more successful forage capture?
 ```{r}
 cleaned_seaotter_data <- cleaned_seaotter_data %>% 
-  filter(success_cd == "y" | success_cd == "n")
+  filter(success_cd == "y" | success_cd == "n") %>% 
+  filter(sex_cd != "u")
 
 dive_time_summary <- cleaned_seaotter_data %>%
   group_by(success_cd) %>%
@@ -40,6 +42,23 @@ cleaned_seaotter_data %>%
   theme(legend.position = "none")
 ```
 
+#Looking at variables
+```{r}
+#examining dive time by gender
+ggplot(cleaned_seaotter_data, aes(x=dive_time)) +
+  geom_histogram() +
+  labs(x = "Dive Time (seconds)",
+       y = "Count") +
+  facet_grid(~sex_cd)
+
+#examining bout date
+ggplot(cleaned_seaotter_data, aes(x=bout_date)) +
+  geom_histogram() +
+  labs(x = "Bout Date (year)",
+       y = "Count")
+```
+
+
 ```{r}
 #T-Test!!!
 
@@ -55,24 +74,40 @@ successful_dive_ttest <- t.test(x = successful_dive_time$dive_time,
 successful_dive_ttest
 ```
 
-#has prey type changed over time?
+#does success change by site name?
 ```{r}
-preytype_years_binned <- cleaned_seaotter_data %>%
-  mutate(time_period = cut_interval(year, n = 4))
+seaotter_success_site <- cleaned_seaotter_data %>%
+  filter(success_cd == "y") %>%
+  group_by(site_name) %>%
+  count(success_cd) %>%
+  rename(count_success = "n")
 
-preytype_years_binned %>%
-  ggplot(aes(x = phylum, fill = phylum)) +
-  geom_bar() +
-  facet_wrap(~time_period) + 
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1), 
-    legend.position = "none") +
-  labs(
-    title = "Prey Phylum Catch Distributions (1993-2019)",
-    subtitle = "Split into four equal time intervals",
-    x = "Prey Phylum",
-    y = "Number of Catches"
-  )
+seaotter_failure_site <- cleaned_seaotter_data %>%
+  filter(success_cd == "n") %>%
+  group_by(site_name) %>%
+  count(success_cd) %>%
+  rename(count_failure = "n")
+
+proportion_success_site <- seaotter_success_site %>% 
+  left_join(seaotter_failure_site %>%
+              select(count_failure), by = "site_name")
+
+proportion_success_site <- proportion_success_site %>% 
+  mutate(proportion_success = count_success / (count_success+count_failure))
 ```
+
+#does success change by sex?
+```{r}
+sex_success <- cleaned_seaotter_data %>%
+  filter(sex_cd != "u") %>%
+  count(sex_cd, success_cd) %>%
+  rename(count_success = n)
+
+sex_success_proportion <- sex_success %>%
+  pivot_wider(names_from = success_cd, values_from = count_success)
+
+sex_success_proportion <- sex_success_proportion %>% 
+  mutate(successful_proportion = y/(y+n))
+```
+
 
