@@ -1,0 +1,78 @@
+---
+title: "Exploratory Figures"
+author: "Alonso Velasquez"
+date: "2026-03-18"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(here)
+
+cleaned_seaotter_data <- read_csv(here("Data/cleaned_seaotter_data.csv"))
+
+```
+
+### Does longer bout time equal more successful forage capture?
+```{r}
+cleaned_seaotter_data <- cleaned_seaotter_data %>% 
+  filter(success_cd == "y" | success_cd == "n")
+
+dive_time_summary <- cleaned_seaotter_data %>%
+  group_by(success_cd) %>%
+  summarize(
+    mean_dive_time = mean(dive_time, na.rm = TRUE),
+    sd_dive_time = sd(dive_time, na.rm = TRUE),
+    sample_size = n()
+  ) %>%
+  ungroup()
+
+print(dive_time_summary)
+
+cleaned_seaotter_data %>% 
+  ggplot(aes(x= success_cd, y = dive_time, color = success_cd)) +
+  geom_jitter(size = 1, alpha = 0.05, stroke = 1) +
+  geom_boxplot(alpha= 0.88) +
+  theme_minimal() +
+  labs(x = "Successful Forage Bout", y = "Dive Time (seconds)", title = "Sea Otter Dive Time and Forage Bout Success", caption = "Unsuccessful forage bouts had an average dive time of 63.0s, while successful forage bouts had an average dive time of 72.3s") +
+  theme(legend.position = "none")
+```
+
+```{r}
+#T-Test!!!
+
+#creating two different datasets
+successful_dive_time <- cleaned_seaotter_data %>% 
+  filter(success_cd == "y")
+unsuccessful_dive_time <- cleaned_seaotter_data %>% 
+  filter(success_cd == "n")
+
+successful_dive_ttest <- t.test(x = successful_dive_time$dive_time,
+                                     y = unsuccessful_dive_time$dive_time)
+
+successful_dive_ttest
+```
+
+#has prey type changed over time?
+```{r}
+preytype_years_binned <- cleaned_seaotter_data %>%
+  mutate(time_period = cut_interval(year, n = 4))
+
+preytype_years_binned %>%
+  ggplot(aes(x = phylum, fill = phylum)) +
+  geom_bar() +
+  facet_wrap(~time_period) + 
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1), 
+    legend.position = "none") +
+  labs(
+    title = "Prey Phylum Catch Distributions (1993-2019)",
+    subtitle = "Split into four equal time intervals",
+    x = "Prey Phylum",
+    y = "Number of Catches"
+  )
+```
+

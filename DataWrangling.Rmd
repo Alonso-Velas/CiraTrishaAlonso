@@ -19,35 +19,25 @@ seaotter_data <- read.csv(here("Data/GLBA_SEOT_forage_bouts_1993-2019(1).csv"))
 ```{r}
 seaotter_data$bout_date <- ymd(seaotter_data$bout_date)
 
+unique(seaotter_data$success_cd)
+
 seaotter_data <- seaotter_data %>%
   mutate(year = year(bout_date)) %>%
   mutate(month = month(bout_date)) %>%
   filter(site_name != "") %>%
-  filter(preysize_cd != "") %>%
   filter(preytype_cd != "uni")%>%
   filter(preytype_cd != "egm") %>%
   filter(sex_cd != "u") %>%
   select("bout_date", "year", "month", "sex_cd", "site_name", "dive_time", "success_cd", "preytype_cd", "prey_qty", "preysize_cd")
-  
-seaotter_data <- na.omit(seaotter_data)
-```
 
+unique(seaotter_data$success_cd)
+#filter  
 
-# Do successful foraging attempts of sea otters within the Glacier Bay National Park vary geographically (different sites)?
-```{r}
-# Site name, Success = Yes, Count
-
-seaotter_success <- seaotter_data %>%
-  filter(success_cd == "y") %>%
-  group_by (site_name) %>%
-  count(success_cd) %>%
-  rename(count = "n")
-  
-# definitely do facet_wrap(~site_name) for graphing
+#seaotter_data <- na.omit(seaotter_data)
+#^I think this removes "n" somehow from success_cd
+unique(seaotter_data$success_cd)
 
 ```
-histogram of success per site
-
 
 # Has prey type/quantity of sea otters within Glacier Bay National Park changed over time?
 ```{r}
@@ -73,9 +63,41 @@ seaotter_preytype$phylum <- ifelse( seaotter_preytype$preytype_cd %in% annelida_
                             ifelse( seaotter_preytype$preytype_cd %in% mollusca_codes, "Mollusca",
                             ifelse( seaotter_preytype$preytype_cd %in% porifera_codes, "Porifera",    
                             ifelse( seaotter_preytype$preytype_cd %in% sipuncula_codes, "Sipuncula", NA)))))))
- 
+
+#adding to big dataset
+seaotter_data$phylum <- ifelse( seaotter_preytype$preytype_cd %in% annelida_codes, "Annelida", 
+                            ifelse( seaotter_preytype$preytype_cd %in% arthropoda_codes, "Arthropoda", 
+                            ifelse( seaotter_preytype$preytype_cd %in% chordata_codes, "Chordata",
+                            ifelse( seaotter_preytype$preytype_cd %in% echinodermata_codes, "Echinodermata",
+                            ifelse( seaotter_preytype$preytype_cd %in% mollusca_codes, "Mollusca",
+                            ifelse( seaotter_preytype$preytype_cd %in% porifera_codes, "Porifera",    
+                            ifelse( seaotter_preytype$preytype_cd %in% sipuncula_codes, "Sipuncula", NA)))))))
+
+#write_csv(seaotter_data, "./Data/cleaned_seaotter_data.csv")
 ```
 scatterplot of grouped food types over time
+
+
+# Do successful foraging attempts of sea otters within the Glacier Bay National Park vary geographically (different sites)?
+```{r}
+# Site name, Success = Yes, Count
+
+seaotter_success <- seaotter_data %>%
+  filter(success_cd == "y") %>%
+  group_by(site_name) %>%
+  count(success_cd) %>%
+  rename(count = "n")
+
+seaotter_failure <- seaotter_data %>%
+  filter(success_cd == "n") %>%
+  group_by(site_name) %>%
+  count(success_cd) %>%
+  rename(count = "n")
+  
+# definitely do facet_wrap(~site_name) for graphing
+
+```
+histogram of success per site
 
 
 # Does the proportion of successful foraging attempts of sea others within Glacier Bay National Park vary with gender or dive time?
