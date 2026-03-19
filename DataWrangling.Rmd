@@ -15,7 +15,6 @@ seaotter_data <- read.csv(here("Data/GLBA_SEOT_forage_bouts_1993-2019(1).csv"))
 ```
 
 # Create Year and Month Columns / Filter for Variables of Interest / Rid NAs and unidentified prey items
-
 ```{r}
 seaotter_data$bout_date <- ymd(seaotter_data$bout_date)
 
@@ -31,15 +30,10 @@ seaotter_data <- seaotter_data %>%
   select("bout_date", "year", "month", "sex_cd", "site_name", "dive_time", "success_cd", "preytype_cd", "prey_qty", "preysize_cd")
 
 unique(seaotter_data$success_cd)
-#filter  
-
-#seaotter_data <- na.omit(seaotter_data)
-#^I think this removes "n" somehow from success_cd
-unique(seaotter_data$success_cd)
 
 ```
 
-# Has prey type/quantity of sea otters within Glacier Bay National Park changed over time?
+# Adding Phylum groups
 ```{r}
 preytype_data <- read.csv(here("Data/GLBA_SEOT_forage_taxonomy_1993-2019(1).csv"))
 
@@ -56,14 +50,6 @@ mollusca_codes <- c("biv", "chi", "chl", "cla", "cln", "crg", "crs", "enn", "eul
 porifera_codes <-c("spo")
 sipuncula_codes <-c("pha")
 
-seaotter_preytype$phylum <- ifelse( seaotter_preytype$preytype_cd %in% annelida_codes, "Annelida", 
-                            ifelse( seaotter_preytype$preytype_cd %in% arthropoda_codes, "Arthropoda", 
-                            ifelse( seaotter_preytype$preytype_cd %in% chordata_codes, "Chordata",
-                            ifelse( seaotter_preytype$preytype_cd %in% echinodermata_codes, "Echinodermata",
-                            ifelse( seaotter_preytype$preytype_cd %in% mollusca_codes, "Mollusca",
-                            ifelse( seaotter_preytype$preytype_cd %in% porifera_codes, "Porifera",    
-                            ifelse( seaotter_preytype$preytype_cd %in% sipuncula_codes, "Sipuncula", NA)))))))
-
 #adding to big dataset
 seaotter_data$phylum <- ifelse( seaotter_preytype$preytype_cd %in% annelida_codes, "Annelida", 
                             ifelse( seaotter_preytype$preytype_cd %in% arthropoda_codes, "Arthropoda", 
@@ -73,55 +59,26 @@ seaotter_data$phylum <- ifelse( seaotter_preytype$preytype_cd %in% annelida_code
                             ifelse( seaotter_preytype$preytype_cd %in% porifera_codes, "Porifera",    
                             ifelse( seaotter_preytype$preytype_cd %in% sipuncula_codes, "Sipuncula", NA)))))))
 
-#write_csv(seaotter_data, "./Data/cleaned_seaotter_data.csv")
 ```
-scatterplot of grouped food types over time
 
-
-# Do successful foraging attempts of sea otters within the Glacier Bay National Park vary geographically (different sites)?
+#Saving cleaned data
 ```{r}
-# Site name, Success = Yes, Count
-
-seaotter_success <- seaotter_data %>%
-  filter(success_cd == "y") %>%
-  group_by(site_name) %>%
-  count(success_cd) %>%
-  rename(count = "n")
-
-seaotter_failure <- seaotter_data %>%
-  filter(success_cd == "n") %>%
-  group_by(site_name) %>%
-  count(success_cd) %>%
-  rename(count = "n")
-  
-# definitely do facet_wrap(~site_name) for graphing
-
+#writing seaotter_data to cleaned csv
+write_csv(seaotter_data, "./Data/cleaned_seaotter_data.csv")
 ```
-histogram of success per site
 
-
-# Does the proportion of successful foraging attempts of sea others within Glacier Bay National Park vary with gender or dive time?
-
+# Does the proportion of successful foraging attempts of sea others within Glacier Bay National Park vary with gender?
 ```{r}
-seaotter_gender <- seaotter_data %>%
-  mutate(success = success_cd =="y") %>%
-  group_by (site_name, sex_cd) %>%
-  summarise(
-    number_dives = n(),
-    success_rate = mean(success),
-    .groups = "drop")
+sex_success <- cleaned_seaotter_data %>%
+  filter(sex_cd != "u") %>%
+  count(sex_cd, success_cd) %>%
+  rename(count_success = n)
 
+sex_success_proportion <- sex_success %>%
+  pivot_wider(names_from = success_cd, values_from = count_success)
 
-seaotter_dive <- seaotter_data  %>%
-  mutate(success = success_cd =="y") %>%
-  group_by (site_name, dive_time) %>%
-  summarise(
-    number_dives = n(),
-    success_rate = mean(success),
-    .groups = "drop")
-
-  
+sex_success_proportion <- sex_success_proportion %>% 
+  mutate(successful_proportion = y/(y+n))
 ```
-GLM for if success can be predicted by gender or dive time
 
 

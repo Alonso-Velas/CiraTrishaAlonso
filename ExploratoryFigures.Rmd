@@ -38,7 +38,7 @@ cleaned_seaotter_data %>%
   geom_jitter(size = 1, alpha = 0.05, stroke = 1) +
   geom_boxplot(alpha= 0.88) +
   theme_minimal() +
-  labs(x = "Successful Forage Bout", y = "Dive Time (seconds)", title = "Sea Otter Dive Time and Forage Bout Success", caption = "Unsuccessful forage bouts had an average dive time of 63.0s, while successful forage bouts had an average dive time of 72.3s") +
+  labs(x = "Successful Forage Bout", y = "Dive Time (seconds)", title = "Sea Otter Dive Time and Forage Bout Success", subtitle = "Unsuccessful forage bouts had an average dive time of 63.0s (sd = 40.6), while successful forage bouts had an average dive time of 72.3s (sd = 34.6).  \nThere is a statistically significant difference in means between unsuccessful and succesful \nforage bouts according to a two-tailed two-sample t-test (t = 7.85, df = 1376.1, p = 8.011e-15)") +
   theme(legend.position = "none")
 ```
 
@@ -48,7 +48,8 @@ cleaned_seaotter_data %>%
 ggplot(cleaned_seaotter_data, aes(x=dive_time)) +
   geom_histogram() +
   labs(x = "Dive Time (seconds)",
-       y = "Count") +
+       y = "Count", title = "Histogram of Sea Otter Dive Time per Forage Bout (Grouped by Sex)",
+       subtitle = "Data seems to be normally distributed, with slight right tails") +
   facet_grid(~sex_cd)
 
 #examining bout date
@@ -95,19 +96,3 @@ proportion_success_site <- seaotter_success_site %>%
 proportion_success_site <- proportion_success_site %>% 
   mutate(proportion_success = count_success / (count_success+count_failure))
 ```
-
-#does success change by sex?
-```{r}
-sex_success <- cleaned_seaotter_data %>%
-  filter(sex_cd != "u") %>%
-  count(sex_cd, success_cd) %>%
-  rename(count_success = n)
-
-sex_success_proportion <- sex_success %>%
-  pivot_wider(names_from = success_cd, values_from = count_success)
-
-sex_success_proportion <- sex_success_proportion %>% 
-  mutate(successful_proportion = y/(y+n))
-```
-
-
