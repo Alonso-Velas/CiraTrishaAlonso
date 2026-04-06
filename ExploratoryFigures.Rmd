@@ -12,6 +12,8 @@ library(tidyverse)
 library(here)
 
 cleaned_seaotter_data <- read_csv(here("Data/cleaned_seaotter_data.csv"))
+
+unique(cleaned_seaotter_data$month)
 ```
 
 ### Does longer bout time equal more successful forage capture?

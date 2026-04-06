@@ -1,0 +1,66 @@
+---
+title: "SuccessLogisticRegression"
+author: "Alonso Velasquez"
+date: "2026-04-06"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#Loading packages
+library(tidyverse)
+library(here)
+library(naniar)
+library(DHARMa)
+library(gtsummary)
+library(broom)
+library(moments)
+library(car)
+
+```
+
+```{r}
+#Reading in data
+cleaned_seaotter_data <- read_csv(here("Data/cleaned_seaotter_data.csv"))
+```
+
+```{r}
+#Filtering only usable data
+cleaned_seaotter_data <- cleaned_seaotter_data %>% 
+  filter(!is.na(month)) %>% 
+  filter(sex_cd == "f" | sex_cd == "m") %>% 
+  filter(!is.na(site_name)) %>% 
+  filter(!is.na(dive_time)) %>% 
+  filter(!is.na(dive_num)) %>% 
+  filter(visibility_cd != "un") %>% 
+  filter(ageclass_cd != "u") %>% 
+  filter(success_cd == "y" | success_cd == "n") %>% 
+  mutate(month = as.factor(month)) %>% 
+  mutate(dive_num = as.factor(dive_num)) %>% 
+  mutate(ageclass_cd = factor(ageclass_cd, levels = c("p", "j", "s", "a", "o"))) %>% 
+  mutate(visibility_cd = factor(visibility_cd, levels = c("po", "fa", "go", "vg", "ex"))) %>% 
+  mutate(success_cd = case_when(success_cd == "y" ~ 1,
+                                success_cd == "n" ~ 0))
+```
+
+
+```{r}
+#Logistic regression 
+success_model1 <- glm(success_cd ~ month + sex_cd + dive_time + dive_num + ageclass_cd + visibility_cd, data = cleaned_seaotter_data, family = "binomial")
+
+success_model_nodivenum <- glm(success_cd ~ month + sex_cd + dive_time + ageclass_cd + visibility_cd, data = cleaned_seaotter_data, family = "binomial")
+
+summary(success_model1)
+summary(success_model_nodivenum)
+
+summary(success_model_nodivenum)
+simulateResiduals(success_model1) %>% 
+  plot()
+simulateResiduals(success_model_nodivenum) %>% 
+  plot()
+
+AIC(success_model1, success_model_nodivenum)
+
+```
+
