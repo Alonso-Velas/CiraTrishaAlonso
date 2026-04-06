@@ -14,8 +14,6 @@ library(here)
 cleaned_seaotter_data <- read_csv(here("Data/cleaned_seaotter_data.csv"))
 ```
 
-
-
 ### Does longer bout time equal more successful forage capture?
 ```{r}
 cleaned_seaotter_data <- cleaned_seaotter_data %>% 
