@@ -16,8 +16,9 @@ library(DHARMa)
 library(gtsummary)
 library(broom)
 library(moments)
+install.packages("car")
 library(car)
-#install.packages("lme4", type = "source")
+install.packages("lme4", type = "source")
 library(lme4)
 
 ```
@@ -65,6 +66,31 @@ simulateResiduals(success_model_nodivenum) %>%
   plot()
 
 AIC(success_model1, success_model_nodivenum)
+
+```
+
+```{r}
+#Checking for multicolinearity
+
+
+#Categorical variables success and sex correlation?
+success_sex_data <- table(cleaned_seaotter_data$success_cd,
+                    cleaned_seaotter_data$sex_cd)
+
+chisq.test(success_sex_data)
+#X-squared = 3.9197e-30, df = 1, p-value = 1 --no correlation 
+
+
+#Dive number & Dive time correlation?
+cor.test(
+  as.numeric(as.character(cleaned_seaotter_data$dive_num)),
+  cleaned_seaotter_data$dive_time)
+#t = -4.6847, df = 5544, p-value = 2.871e-06
+
+
+
+      
+
 
 ```
 
