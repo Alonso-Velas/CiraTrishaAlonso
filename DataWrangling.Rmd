@@ -27,7 +27,7 @@ seaotter_data <- seaotter_data %>%
   filter(preytype_cd != "uni")%>%
   filter(preytype_cd != "egm") %>%
   filter(sex_cd != "u") %>%
-  select("bout_date", "year", "month", "sex_cd", "site_name", "dive_time", "success_cd", "preytype_cd", "prey_qty", "preysize_cd", "ageclass_cd", "dive_num", "visibility_cd", "area_cd")
+  select("bout_date", "year", "month", "sex_cd", "site_name", "dive_time", "success_cd", "preytype_cd", "prey_qty", "preysize_cd", "ageclass_cd", "dive_num", "visibility_cd", "area_cd", "bout_id")
 
 unique(seaotter_data$success_cd)
 
