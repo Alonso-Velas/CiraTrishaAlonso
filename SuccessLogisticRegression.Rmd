@@ -56,6 +56,7 @@ cleaned_seaotter_data2 <- cleaned_seaotter_data %>%
   filter(!is.na(site_name)) %>% 
   filter(!is.na(dive_time)) %>% 
   filter(!is.na(dive_num)) %>% 
+  filter(dive_num <= 20) %>% 
   filter(visibility_cd != "un") %>% 
   filter(ageclass_cd == "s" | ageclass_cd == "a") %>% 
   filter(success_cd == "y" | success_cd == "n") %>% 
@@ -107,6 +108,11 @@ simulateResiduals(success_model_trimageclass) %>%
 
 ```
 
+```{r}
+cleaned_seaotter_data2 %>% 
+  ggplot(aes(x = dive_num)) +
+  geom_histogram()
+```
 
 
 ```{r}
