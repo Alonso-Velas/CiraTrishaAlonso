@@ -72,30 +72,21 @@ cleaned_seaotter_data2 <- cleaned_seaotter_data %>%
 
 ```{r}
 #Nested Logistic regression 
-success_model1 <- glmer(success_cd ~ month + sex_cd + dive_time + dive_num_factor + ageclass_cd + visibility_cd + (1 | site_name) + (1 | bout_id), data = cleaned_seaotter_data1, family = "binomial")
+success_model_BoutID <- glmer(success_cd ~ month + sex_cd + dive_time + dive_num_factor + ageclass_cd + visibility_cd + (1 | site_name) + (1 | bout_id), data = cleaned_seaotter_data1, family = "binomial")
 
-success_model2 <- glmer(success_cd ~ month + sex_cd + dive_time + dive_num_factor + ageclass_cd + visibility_cd + (1 | site_name), data = cleaned_seaotter_data1, family = "binomial")
+success_model_noBoutID <- glmer(success_cd ~ month + sex_cd + dive_time + dive_num_factor + ageclass_cd + visibility_cd + (1 | site_name), data = cleaned_seaotter_data1, family = "binomial")
 
-success_model_nodivenum <- glmer(success_cd ~ month + sex_cd + dive_time + ageclass_cd + visibility_cd + (1 | site_name), data = cleaned_seaotter_data1, family = "binomial")
+success_model_BoutID_noDiveNum <- glmer(success_cd ~ month + sex_cd + dive_time + ageclass_cd + visibility_cd + (1 | site_name) + (1 | bout_id), data = cleaned_seaotter_data1, family = "binomial")
 
-success_model_trimageclass <- glmer(success_cd ~ month + sex_cd + dive_time + dive_num_factor + ageclass_cd + visibility_cd + (1 | site_name) + (1 | bout_id), data = cleaned_seaotter_data2, family = "binomial")
+success_model_BoutID_TrimAgeClass <- glmer(success_cd ~ month + sex_cd + dive_time + dive_num_factor + ageclass_cd + visibility_cd + (1 | site_name) + (1 | bout_id), data = cleaned_seaotter_data2, family = "binomial")
 
 
-unique(cleaned_seaotter_data1$bout_id)
+summary(success_model_BoutID)
+summary(success_model_noBoutID)
+summary(success_model_BoutID_noDiveNum)
+summary(success_model_BoutID_TrimAgeClass)
 
-summary(success_model1)
-summary(success_model2)
-summary(success_model_nodivenum)
-summary(success_model_trimageclass)
-
-summary(success_model_nodivenum)
-simulateResiduals(success_model1) %>% 
-  plot()
-simulateResiduals(success_model_nodivenum) %>% 
-  plot()
-
-AIC(success_model1, success_model2)
-AIC(success_model1, success_model2, success_model_nodivenum, success_model_trimageclass)
+AIC(success_model_BoutID, success_model_noBoutID, success_model_BoutID_noDiveNum, success_model_BoutID_TrimAgeClass)
 
 ```
 
