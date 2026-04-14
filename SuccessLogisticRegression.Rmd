@@ -124,7 +124,6 @@ cleaned_seaotter_data1 %>%
 
 unique(cleaned_seaotter_data$month)
 
-exp(1.348)
 ```
 
 ```{r}
