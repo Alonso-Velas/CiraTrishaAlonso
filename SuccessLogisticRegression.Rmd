@@ -21,7 +21,8 @@ library(car)
 #install.packages("lme4", type = "source")
 library(lme4)
 library(gt)
-
+#install.packages("forcats")
+library(forcats)
 ```
 
 ```{r}
@@ -47,6 +48,8 @@ cleaned_seaotter_data1 <- cleaned_seaotter_data %>%
   mutate(visibility_cd = factor(visibility_cd, levels = c("po", "fa", "go", "vg", "ex"))) %>% 
   mutate(season = case_when(month == 8 ~ "summer",
                             TRUE ~ "spring")) %>% 
+  mutate(visibility_cd = fct_collapse(visibility_cd, po = c("po", "fa"), go = "go",
+                                       vg = "vg", ex = "ex")) %>% 
   mutate(success_cd = case_when(success_cd == "y" ~ 1,
                                 success_cd == "n" ~ 0))
 
@@ -70,6 +73,8 @@ cleaned_seaotter_data2 <- cleaned_seaotter_data %>%
   mutate(visibility_cd = factor(visibility_cd, levels = c("po", "fa", "go", "vg", "ex"))) %>% 
   mutate(season = case_when(month == 8 ~ "summer",
                             TRUE ~ "spring")) %>%
+  mutate(visibility_cd = fct_collapse(visibility_cd, po = c("po", "fa"), go = "go",
+                                       vg = "vg", ex = "ex")) %>%
   mutate(success_cd = case_when(success_cd == "y" ~ 1,
                                 success_cd == "n" ~ 0))
 
@@ -97,13 +102,15 @@ summary(success_model_BoutID_TrimAgeClass_NoVisibility)
 
 AIC(success_model_BoutID, success_model_noBoutID, success_model_BoutID_noDiveNum, success_model_BoutID_TrimAgeClass, success_model_BoutID_TrimAgeClass_NoVisibility)
 
+xtabs(~ success_cd + visibility_cd, data = cleaned_seaotter_data2)
+
 ```
 
 ```{r}
 # Explore Model With Best AIC
-summary(success_model_trimageclass)
+summary(success_model_BoutID_TrimAgeClass_NoVisibility)
 
-simulateResiduals(success_model_trimageclass) %>%
+simulateResiduals(success_model_BoutID_TrimAgeClass_NoVisibility) %>%
   plot()
 
 ```
@@ -112,7 +119,7 @@ simulateResiduals(success_model_trimageclass) %>%
 cleaned_seaotter_data1 %>% 
   ggplot(aes(x = as.factor(success_cd))) +
   geom_bar() +
-  facet_wrap(~ageclass_cd) +
+  facet_wrap(~visibility_cd) +
   labs(x = "successful forage dive")
 
 unique(cleaned_seaotter_data$month)
@@ -145,89 +152,38 @@ cor.test(
 ```{r}
 ### MAKING TABLES ###
 
-#making our model an object?
-mod <- success_model_BoutID_TrimAgeClass
+model_summary <- summary(success_model_BoutID_TrimAgeClass_NoVisibility)
 
-#getting fixed effects for table
-fixed_df <- summary(mod)$coefficients %>%
-  as.data.frame() %>%
-  rownames_to_column(var = "term") %>%
-  rename(
-    estimate = Estimate,
-    std_error = `Std. Error`,
-    z_value = `z value`,
-    p_value = `Pr(>|z|)`
-  ) %>%
-  mutate(
-    variable_group = case_when(
-      term == "(Intercept)" ~ "Intercept",
-      str_starts(term, "season") ~ "Season",
-      str_starts(term, "sex_cd") ~ "Sex",
-      term == "dive_time" ~ "Dive Time",
-      str_starts(term, "dive_num_factor") ~ "Dive Number",
-      str_starts(term, "ageclass_cd") ~ "Age Class",
-      str_starts(term, "visibility_cd") ~ "Visibility",
-      TRUE ~ "Other"
-    )
-  )
+model_df <- as.data.frame(model_summary$coefficients) %>%
+  mutate(term = rownames(model_summary$coefficients)) %>%
+  select(term, Estimate, `Std. Error`, `z value`, `Pr(>|z|)`)
+
+dive_num_table <- model_df %>%
+  filter(str_detect(term, "dive_num_factor"))
+
+other_terms_table <- model_df %>%
+  filter(!str_detect(term, "dive_num_factor"))
+
+
+dive_num_gt <- dive_num_table %>%
+  gt() %>%
+  cols_label(term = "Term", Estimate = "Estimate", `Std. Error` = "Std. Error",
+             `z value` = "z value", `Pr(>|z|)` = "p-value") %>%
+  fmt_number(columns = c(Estimate, `Std. Error`, `z value`), decimals = 3) %>%
+  fmt_number(columns = `Pr(>|z|)`, decimals = 3) %>%
+  tab_header(title = "Model Results: Dive Number Effects")
+
+other_terms_gt <- other_terms_table %>%
+  gt() %>%
+  cols_label(term = "Term", Estimate = "Estimate", `Std. Error` = "Std. Error",
+             `z value` = "z value",`Pr(>|z|)` = "p-value") %>%
+  fmt_number(columns = c(Estimate, `Std. Error`, `z value`), decimals = 3) %>%
+  fmt_number(columns = `Pr(>|z|)`, decimals = 3) %>%
+  tab_header(title = "Model Results: Other Fixed Effects")
 ```
 
 ```{r}
-### writing a function to make separate tables ;O
-make_gt_table <- function(data, title_text) {
-  data %>%
-    select(term, estimate, std_error, z_value, p_value) %>%
-    gt() %>%
-    tab_header(title = title_text) %>%
-    cols_label(
-      term = "Fixed Effect",
-      estimate = "Estimate",
-      std_error = "Std. Error",
-      z_value = "z-value",
-      p_value = "p-value"
-    ) %>%
-    fmt_number(
-      columns = c(estimate, std_error, z_value),
-      decimals = 3
-    ) %>%
-    fmt(
-      columns = p_value,
-      fns = function(x) ifelse(x < 0.001, "<0.001", sprintf("%.3f", x))
-    )
-}
-
-season_tbl <- fixed_df %>%
-  filter(variable_group == "Season") %>%
-  make_gt_table("Season: with reference to Spring")
-
-sex_tbl <- fixed_df %>%
-  filter(variable_group == "Sex") %>%
-  make_gt_table("Sex: with reference to Female")
-
-dive_time_tbl <- fixed_df %>%
-  filter(variable_group == "Dive Time") %>%
-  make_gt_table("Dive Time")
-
-dive_number_tbl <- fixed_df %>%
-  filter(variable_group == "Dive Number") %>%
-  make_gt_table("Dive Number: with reference to first Dive")
-
-ageclass_tbl <- fixed_df %>%
-  filter(variable_group == "Age Class") %>%
-  make_gt_table("Age Class: with reference to Sub-Adults")
-
-visibility_tbl <- fixed_df %>%
-  filter(variable_group == "Visibility") %>%
-  make_gt_table("Visibility: with reference to Poor Visibility")
-```
-
-```{r}
-#opening up tables
-season_tbl
-sex_tbl
-dive_time_tbl
-dive_number_tbl
-ageclass_tbl
-visibility_tbl
+other_terms_gt
+dive_num_gt
 ```
 
