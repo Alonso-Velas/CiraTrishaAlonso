@@ -39,6 +39,10 @@ cleaned_seaotter_data1 <- cleaned_seaotter_data %>%
   filter(!is.na(dive_time)) %>% 
   filter(!is.na(dive_num)) %>% 
   filter(dive_num <= 20) %>% 
+  mutate(dive_num_group = case_when(dive_num <= 3 ~ "early",
+                                    dive_num <= 10 ~ "mid",
+                                    TRUE ~ "late")) %>% 
+  mutate(dive_num_group = factor(dive_num_group, levels = c("early", "mid", "late"))) %>% 
   filter(visibility_cd != "un") %>% 
   filter(ageclass_cd != "u") %>% 
   filter(success_cd == "y" | success_cd == "n") %>% 
@@ -53,6 +57,7 @@ cleaned_seaotter_data1 <- cleaned_seaotter_data %>%
   mutate(success_cd = case_when(success_cd == "y" ~ 1,
                                 success_cd == "n" ~ 0))
 
+unique(cleaned_seaotter_data1$dive_num_group)
 ```
 
 ```{r}
@@ -63,7 +68,11 @@ cleaned_seaotter_data2 <- cleaned_seaotter_data %>%
   filter(!is.na(site_name)) %>% 
   filter(!is.na(dive_time)) %>% 
   filter(!is.na(dive_num)) %>% 
-  filter(dive_num <= 20) %>% 
+  filter(dive_num <= 20) %>%
+  mutate(dive_num_group = case_when(dive_num <= 3 ~ "early",
+                                    dive_num <= 10 ~ "mid",
+                                    TRUE ~ "late")) %>%
+  mutate(dive_num_group = factor(dive_num_group, levels = c("early", "mid", "late"))) %>% 
   filter(visibility_cd != "un") %>% 
   filter(ageclass_cd == "s" | ageclass_cd == "a") %>% 
   filter(success_cd == "y" | success_cd == "n") %>% 
