@@ -39,10 +39,10 @@ cleaned_seaotter_data1 <- cleaned_seaotter_data %>%
   filter(!is.na(dive_time)) %>% 
   filter(!is.na(dive_num)) %>% 
   filter(dive_num <= 20) %>% 
-  mutate(dive_num_group = case_when(dive_num <= 3 ~ "early",
-                                    dive_num <= 10 ~ "mid",
+  mutate(dive_num_group = case_when(dive_num <= 5 ~ "early",
                                     TRUE ~ "late")) %>% 
-  mutate(dive_num_group = factor(dive_num_group, levels = c("early", "mid", "late"))) %>% 
+  mutate(dive_num_group = factor(dive_num_group, levels = c("early", "late"))) %>% 
+  mutate(dive_num_group = factor(dive_num_group, levels = c("early", "mid early", "mid late", "late"))) %>% 
   filter(visibility_cd != "un") %>% 
   filter(ageclass_cd != "u") %>% 
   filter(success_cd == "y" | success_cd == "n") %>% 
@@ -69,10 +69,9 @@ cleaned_seaotter_data2 <- cleaned_seaotter_data %>%
   filter(!is.na(dive_time)) %>% 
   filter(!is.na(dive_num)) %>% 
   filter(dive_num <= 20) %>%
-  mutate(dive_num_group = case_when(dive_num <= 3 ~ "early",
-                                    dive_num <= 10 ~ "mid",
-                                    TRUE ~ "late")) %>%
-  mutate(dive_num_group = factor(dive_num_group, levels = c("early", "mid", "late"))) %>% 
+  mutate(dive_num_group = case_when(dive_num <= 5 ~ "early",
+                                    TRUE ~ "late")) %>% 
+  mutate(dive_num_group = factor(dive_num_group, levels = c("early", "late"))) %>% 
   filter(visibility_cd != "un") %>% 
   filter(ageclass_cd == "s" | ageclass_cd == "a") %>% 
   filter(success_cd == "y" | success_cd == "n") %>% 
@@ -102,38 +101,82 @@ success_model_BoutID_TrimAgeClass <- glmer(success_cd ~ season + sex_cd + dive_t
 
 success_model_BoutID_TrimAgeClass_NoVisibility <- glmer(success_cd ~ season + sex_cd + dive_time + dive_num_factor + ageclass_cd + (1 | site_name) + (1 | bout_id), data = cleaned_seaotter_data2, family = "binomial")
 
+success_model_DiveGroup <- glmer(success_cd ~ season + sex_cd + dive_time + dive_num_group + ageclass_cd + (1 | site_name) + (1 | bout_id), data = cleaned_seaotter_data2, family = "binomial")
 
 summary(success_model_BoutID)
 summary(success_model_noBoutID)
-summary(success_model_BoutID_noDiveNum)
 summary(success_model_BoutID_TrimAgeClass)
 summary(success_model_BoutID_TrimAgeClass_NoVisibility)
 
-AIC(success_model_BoutID, success_model_noBoutID, success_model_BoutID_noDiveNum, success_model_BoutID_TrimAgeClass, success_model_BoutID_TrimAgeClass_NoVisibility)
+summary(success_model_DiveGroup)
 
-xtabs(~ success_cd + visibility_cd, data = cleaned_seaotter_data2)
-
+AIC(success_model_BoutID, success_model_noBoutID, success_model_BoutID_TrimAgeClass, success_model_BoutID_TrimAgeClass_NoVisibility)
 ```
 
 ```{r}
 # Explore Model With Best AIC
-summary(success_model_BoutID_TrimAgeClass_NoVisibility)
-
 simulateResiduals(success_model_BoutID_TrimAgeClass_NoVisibility) %>%
   plot()
+
+#Looking at infravariable effectzzz
+summary(success_model_BoutID_TrimAgeClass_NoVisibility)
 
 ```
 
 ```{r}
-cleaned_seaotter_data1 %>% 
-  ggplot(aes(x = as.factor(success_cd))) +
-  geom_bar() +
-  facet_wrap(~visibility_cd) +
-  labs(x = "successful forage dive")
+####Dive Time Descriptive Statistics
+dive_time_summary <- cleaned_seaotter_data2 %>%
+  group_by(success_cd) %>%
+  summarize(
+    mean_dive_time = mean(dive_time, na.rm = TRUE),
+    sd_dive_time = sd(dive_time, na.rm = TRUE),
+    sample_size = n()) %>%
+  ungroup()
 
-unique(cleaned_seaotter_data$month)
+print(dive_time_summary)
+
+dive_time_plot <- cleaned_seaotter_data2 %>% 
+  ggplot(aes(x= as.factor(success_cd), y = dive_time, color = as.factor(success_cd))) +
+  geom_jitter(size = 1, alpha = 0.05, stroke = 1) +
+  geom_boxplot(alpha= 0.88) +
+  theme_minimal() +
+  scale_x_discrete(labels = c("0" = "Fail", "1" = "Success")) +
+  ylim(min = 0, max = 250) +
+  labs(x = "Successful Forage Bout", y = "Dive Time (seconds)", title = "Sea Otter Dive Time and Foraging Bout Dive Success") +
+  theme(legend.position = "none", text = element_text(family = "Times New Roman"), plot.title = element_text(face = "bold", size = 14)) 
+
+ggsave("divetime_plot.png", plot = dive_time_plot, dpi = 500)
+
+"Unsuccessful forage bouts had an average dive time of 58.6s (sd = 35.0, n = 313), while successful forage bouts had an average dive time of 70.9s (sd = 34.4, n = 5096).  \nThere is a statistically significant difference in means between unsuccessful and succesful \nforage bouts according to a two-tailed two-sample t-test (t = 7.85, df = 1376.1, p = 8.011e-15)"
+
+#creating two different datasets
+successful_dive_time <- cleaned_seaotter_data2 %>% 
+  filter(success_cd == "1")
+unsuccessful_dive_time <- cleaned_seaotter_data2 %>% 
+  filter(success_cd == "0")
+
+t.test(x = successful_dive_time$dive_time, y = unsuccessful_dive_time$dive_time,alternative = "greater")
 
 ```
+
+```{r}
+#Creating count table for categorical variables
+cleaned_seaotter_data2 %>%
+  mutate(ageclass_cd = fct_recode(ageclass_cd, "subadult" = "s", 
+                                  "adult" = "a"), 
+         sex_cd = fct_recode(sex_cd, "female" = "f", "male" = "m"),
+         dive_num_group = fct_recode(dive_num_group, "early (<= 5)" = "early", "late (>5)" = "late")) %>%
+  select(success_cd, ageclass_cd, sex_cd, season, dive_num_group) %>%
+  tbl_summary(by = success_cd, label = list(ageclass_cd ~ "Age Class",
+      sex_cd ~ "Sex", season ~ "Season", dive_num_group ~ "Dive Number (Early vs. Late)"), digits = all_categorical() ~ c(0, 0)) %>%
+  modify_header(label ~ "Variable", stat_1 ~ "Fail (O)", stat_2 ~ "Success (1)") %>%
+modify_footnote(all_stat_cols() ~ "Count (Percent); Fail n = 313, Success n = 5,096") %>% 
+  as_gt() %>% 
+  fmt_number(columns = c(stat_1, stat_2), decimals = 0) %>% 
+  tab_options(table.font.names = "Times New Roman", table.width = pct(100))
+  
+```
+
 
 ```{r}
 #Checking for multicolinearity
@@ -149,8 +192,8 @@ chisq.test(success_sex_data)
 
 #Dive number & Dive time correlation?
 cor.test(
-  as.numeric(as.character(cleaned_seaotter_data1$dive_num)),
-  cleaned_seaotter_data1$dive_time)
+  as.numeric(as.character(cleaned_seaotter_data2$dive_num)),
+  cleaned_seaotter_data2$dive_time)
 #t = -4.6847, df = 5544, p-value = 2.871e-06
 
 
@@ -170,28 +213,66 @@ dive_num_table <- model_df %>%
   filter(str_detect(term, "dive_num_factor"))
 
 other_terms_table <- model_df %>%
-  filter(!str_detect(term, "dive_num_factor"))
+  filter(!str_detect(term, "dive_num_factor")) %>% 
+  mutate(term = case_when(
+    term == "seasonsummer" ~ "season (summer)",
+    term == "sex_cdm" ~ "sex (male)",
+    term == "dive_time" ~ "dive time, seconds",
+    term == "ageclass_cda" ~ "age class (adult)",
+    TRUE ~ term))
 
 
-dive_num_gt <- dive_num_table %>%
+dive_num_table %>%
   gt() %>%
-  cols_label(term = "Term", Estimate = "Estimate", `Std. Error` = "Std. Error",
-             `z value` = "z value", `Pr(>|z|)` = "p-value") %>%
-  fmt_number(columns = c(Estimate, `Std. Error`, `z value`), decimals = 3) %>%
-  fmt_number(columns = `Pr(>|z|)`, decimals = 3) %>%
-  tab_header(title = "Model Results: Dive Number Effects")
+  cols_label(term = "Term") %>%
+  fmt_number(columns = c(Estimate, `Std. Error`, `z value`, `Pr(>|z|)`), decimals = 3) %>%
+  tab_header(title = "Dive Success Mixed-Effects Logistic Regression: Dive Number (Fixed Effect)") %>% 
+  tab_options(table.font.names = "Times New Roman", table.width = pct(100))
 
-other_terms_gt <- other_terms_table %>%
+other_terms_table %>%
   gt() %>%
-  cols_label(term = "Term", Estimate = "Estimate", `Std. Error` = "Std. Error",
-             `z value` = "z value",`Pr(>|z|)` = "p-value") %>%
-  fmt_number(columns = c(Estimate, `Std. Error`, `z value`), decimals = 3) %>%
-  fmt_number(columns = `Pr(>|z|)`, decimals = 3) %>%
-  tab_header(title = "Model Results: Other Fixed Effects")
+  cols_label(term = "Term") %>%
+  fmt_number(columns = c(Estimate, `Std. Error`, `z value`, `Pr(>|z|)`), decimals = 3) %>%
+  tab_header(title = "Dive Success Mixed-Effects Logistic Regression: Fixed Effects (excluding Dive Number)") %>% 
+  tab_options(table.font.names = "Times New Roman", table.width = pct(100))
+  
 ```
 
 ```{r}
-other_terms_gt
-dive_num_gt
+### AIC Table
+model_AICs <- AIC(success_model_BoutID, success_model_noBoutID, success_model_BoutID_TrimAgeClass, success_model_BoutID_TrimAgeClass_NoVisibility)
+
+AIC_df <- as.data.frame(model_AICs) %>% 
+  mutate(Model = rownames(model_AICs)) %>%
+  select(Model, df, AIC) %>% 
+  mutate(Model = case_when(
+    Model == "success_model_BoutID" ~ "Bout ID",
+    Model == "success_model_noBoutID" ~ "No Bout ID",
+    Model == "success_model_BoutID_TrimAgeClass" ~ "Bout ID, Trimmed Age Class",
+    Model == "success_model_BoutID_TrimAgeClass_NoVisibility" ~ "Bout ID, Trimmed Age Class, No Visibility",
+    TRUE ~ Model)) 
+
+AIC_df %>%
+  gt() %>% 
+  tab_options(table.font.names = "Times New Roman", table.width = pct(100))
+
+```
+
+```{r}
+#Random effects table
+re_df <- as.data.frame(VarCorr(success_model_BoutID_TrimAgeClass_NoVisibility)) %>% 
+  select(-var2) %>% 
+  mutate(grp = case_when(
+    grp == "bout_id" ~ "bout ID",
+    grp == "site_name" ~ "site name",
+    TRUE ~ grp))
+
+re_df %>%
+  gt() %>%
+  cols_label(grp = "Group", var1 = "Type", vcov = "Variance",
+             sdcor = "Std. Dev.") %>%
+  tab_header(title = "Dive Success Mixed-Effects Logistic Regression: Random Effects") %>% 
+  fmt_number(columns = c(vcov, sdcor), decimals = 4) %>%
+  tab_options(table.font.names = "Times New Roman", table.width = pct(100))
 ```
 
